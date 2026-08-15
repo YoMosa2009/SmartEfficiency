@@ -1,0 +1,138 @@
+name: Release
+
+# Triggered by pushing a tag like v1.2.0. Builds all three binaries
+# (smarteffd, smarteff-tray, smarteff-update) for every supported
+# OS/architecture and publishes them as a GitHub Release - this is exactly
+# what internal/update's self-updater fetches from.
+#
+# Windows and Linux cross-compile cleanly from a single Ubuntu runner with
+# CGO_ENABLED=0 - verified directly while building this project: the tray
+# icon library (fyne.io/systray) uses raw Win32 syscalls on Windows and pure-
+# Go D-Bus on Linux, neither needs a C toolchain. macOS is different: its
+# systray implementation genuinely requires cgo (Cocoa bindings), which can't
+# be cross-compiled from Linux/Windows - that leg builds natively on real
+# macOS runners instead. See internal/platform's package comment and
+# README.md for the fuller cross-platform-support picture (which OS was
+# actually run and verified vs. written-against-docs-only).
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-cross:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: windows
+            goarch: amd64
+            ext: ".exe"
+          - goos: windows
+            goarch: arm64
+            ext: ".exe"
+          - goos: linux
+            goarch: amd64
+            ext: ""
+          - goos: linux
+            goarch: arm64
+            ext: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          set -eu
+          mkdir -p dist
+          VERSION="${GITHUB_REF_NAME}"
+          GUI_FLAG=""
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            GUI_FLAG="-H=windowsgui"
+          fi
+          go build -ldflags "-s -w -X main.version=${VERSION} ${GUI_FLAG}" \
+            -o "dist/smarteffd-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" ./cmd/smarteffd
+          go build -ldflags "-s -w -X main.version=${VERSION} ${GUI_FLAG}" \
+            -o "dist/smarteff-tray-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" ./cmd/smarteff-tray
+          go build -ldflags "-s -w -X main.version=${VERSION}" \
+            -o "dist/smarteff-update-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" ./cmd/smarteff-update
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*
+
+  build-macos:
+    name: Build darwin/${{ matrix.goarch }} (native)
+    strategy:
+      matrix:
+        include:
+          # macos-13 = last Intel (amd64) GitHub-hosted runner;
+          # macos-14 = Apple Silicon (arm64). Adjust if GitHub's runner
+          # lineup changes - the point is each leg must be a REAL Mac of the
+          # matching architecture, not cross-compiled, because the systray
+          # dependency needs cgo+Cocoa here.
+          - goarch: amd64
+            runner: macos-13
+          - goarch: arm64
+            runner: macos-14
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        env:
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 1
+        run: |
+          set -eu
+          mkdir -p dist
+          VERSION="${GITHUB_REF_NAME}"
+          go build -ldflags "-s -w -X main.version=${VERSION}" \
+            -o "dist/smarteffd-darwin-${{ matrix.goarch }}" ./cmd/smarteffd
+          go build -ldflags "-s -w -X main.version=${VERSION}" \
+            -o "dist/smarteff-tray-darwin-${{ matrix.goarch }}" ./cmd/smarteff-tray
+          go build -ldflags "-s -w -X main.version=${VERSION}" \
+            -o "dist/smarteff-update-darwin-${{ matrix.goarch }}" ./cmd/smarteff-update
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-darwin-${{ matrix.goarch }}
+          path: dist/*
+
+  release:
+    name: Publish release
+    needs: [build-cross, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: dist
+        run: sha256sum * > checksums.txt
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          draft: false

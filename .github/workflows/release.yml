@@ -76,6 +76,15 @@ jobs:
 
   build-macos:
     name: Build darwin/${{ matrix.goarch }} (native)
+    # GitHub's macos-13 (Intel) runner pool is small and can queue for a
+    # long time with no machine ever assigned - confirmed directly while
+    # setting this up (still "queued", no runner_id, after 8+ minutes).
+    # continue-on-error + a timeout mean a stuck/unavailable Intel-Mac
+    # runner can never block Windows/Linux/Apple-Silicon-Mac from
+    # releasing; a missing darwin-amd64 asset just means Intel Mac users
+    # wait for the next tag instead of holding up everyone else.
+    continue-on-error: true
+    timeout-minutes: 20
     strategy:
       matrix:
         include:

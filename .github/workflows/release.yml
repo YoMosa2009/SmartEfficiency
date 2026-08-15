@@ -76,25 +76,26 @@ jobs:
 
   build-macos:
     name: Build darwin/${{ matrix.goarch }} (native)
-    # GitHub's macos-13 (Intel) runner pool is small and can queue for a
-    # long time with no machine ever assigned - confirmed directly while
-    # setting this up (still "queued", no runner_id, after 8+ minutes).
-    # continue-on-error + a timeout mean a stuck/unavailable Intel-Mac
-    # runner can never block Windows/Linux/Apple-Silicon-Mac from
-    # releasing; a missing darwin-amd64 asset just means Intel Mac users
-    # wait for the next tag instead of holding up everyone else.
-    continue-on-error: true
-    timeout-minutes: 20
+    # Intel Mac (amd64) deliberately excluded from this matrix - see below.
     strategy:
       matrix:
         include:
-          # macos-13 = last Intel (amd64) GitHub-hosted runner;
-          # macos-14 = Apple Silicon (arm64). Adjust if GitHub's runner
-          # lineup changes - the point is each leg must be a REAL Mac of the
-          # matching architecture, not cross-compiled, because the systray
-          # dependency needs cgo+Cocoa here.
-          - goarch: amd64
-            runner: macos-13
+          # macos-14 = Apple Silicon (arm64) GitHub-hosted runner.
+          #
+          # An amd64/macos-13 (Intel Mac) leg was tried and pulled: GitHub's
+          # macos-13 runner pool queued the job with no machine ever
+          # assigned (confirmed twice via the Actions API - still "queued",
+          # runner_id 0, after 8 and 21 minutes respectively). Unlike a
+          # build failure, a job stuck in "queued" forever never reaches a
+          # terminal state, so neither continue-on-error nor
+          # timeout-minutes can rescue it (both only apply once a job
+          # actually starts running) - it would have blocked every release
+          # indefinitely via this job's `needs` dependency. Dropped rather
+          # than worked around with more retries; Intel Mac support can come
+          # back once that runner pool is reliably available, or via a
+          # locally-built and manually-uploaded release asset in the
+          # meantime (`GOARCH=amd64 CGO_ENABLED=1 go build ./cmd/...` on an
+          # actual Intel Mac).
           - goarch: arm64
             runner: macos-14
     runs-on: ${{ matrix.runner }}

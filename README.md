@@ -89,13 +89,9 @@ behavior, but "written correctly" and "actually verified" are different
 claims, and only Windows got the second one so far.
 
 **macOS releases are currently Apple Silicon (arm64) only.** An Intel
-(amd64) build was attempted in CI and pulled: GitHub's Intel-Mac hosted
+(amd64) build was attempted, and GitHub's Intel-Mac hosted
 runner pool queued the build job with no machine ever assigned, twice in a
-row (confirmed via the Actions API - `"status":"queued"`, no runner, after
-8 and 21 minutes). Since a permanently-queued job never blocks Windows,
-Linux, or Apple Silicon from releasing (it was in a separate CI job), it was
-simplest to drop it rather than let one runner pool's availability hold up
-every release indefinitely. If you're on an Intel Mac, build from source
+row. If you're on an Intel Mac, build from source
 (see below) - the code itself doesn't care which Mac architecture it's on.
 
 ## Self-update

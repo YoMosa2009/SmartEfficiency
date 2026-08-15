@@ -82,6 +82,8 @@ full interface and per-OS API mapping.
 | Foreground-app detection | `GetForegroundWindow` - reliable | `xdotool` (X11/XWayland only) - **no equivalent exists under native Wayland**; silently no-ops there | `System Events` via AppleScript - needs Accessibility permission granted on first run |
 | Autostart | Task Scheduler | systemd user service | launchd agent |
 | Tray icon build | Pure Go (no cgo) | Pure Go (D-Bus, no cgo) | Requires cgo - built natively on a macOS CI runner |
+| Timer-resolution watch | `NtQueryTimerResolution` - verified working | Not implemented (no equivalent single value) | Not implemented |
+| Weekly energy audit | `powercfg /energy` - verified against a real report | TLP presence check only (deliberately doesn't duplicate TLP) | Not implemented |
 
 If you run this on Linux or macOS and something doesn't work, please open an
 issue - the code was written carefully against each OS's documented
@@ -93,6 +95,60 @@ claims, and only Windows got the second one so far.
 runner pool queued the build job with no machine ever assigned, twice in a
 row. If you're on an Intel Mac, build from source
 (see below) - the code itself doesn't care which Mac architecture it's on.
+
+## Energy diagnostics (added in v0.2.0)
+
+Two additions grounded in actual research (not just intuition) into what
+actually drains laptop batteries, plus one real technique deliberately
+**not** implemented because research showed it's outdated/risky advice:
+
+**Timer-resolution watch** (every poll cycle, free). Windows apps can
+request a high-precision system timer (`timeBeginPeriod`) for smooth
+animations/audio - and forget to release it. Microsoft's own measurements
+show this can cost **10-25% extra system power indefinitely** by keeping
+the CPU out of deep idle states ([Microsoft Learn: Idle Energy Efficiency
+Assessment](https://learn.microsoft.com/en-us/windows-hardware/test/assessments/results-for-the-idle-energy-efficiency-assessment),
+[Bruce Dawson: Windows Timer Resolution: Megawatts
+Wasted](https://randomascii.wordpress.com/2013/07/08/windows-timer-resolution-megawatts-wasted/)).
+This daemon checks the live system timer resolution every cycle via
+`NtQueryTimerResolution` and flags it if elevated for 5+ sustained minutes.
+Confirmed working against real hardware while building this: it correctly
+caught ChatGPT's desktop app holding a 1ms timer request during testing.
+
+**Weekly energy audit** (Windows only, admin-required). Runs
+`powercfg /energy` - the same built-in diagnostic OEMs use to certify power
+efficiency - and parses its real output into a short, named-and-attributed
+summary. The XML schema this parses against was verified by generating an
+actual report on real hardware, not guessed from documentation. On the
+machine this was built on, it immediately surfaced real, previously-unknown
+issues: sleep timeout disabled entirely (both on battery and plugged in), a
+named browser process holding a sleep-prevention request, and a Bluetooth
+adapter never entering USB selective suspend.
+
+**Deliberately not implemented: manually capping max CPU frequency on
+battery.** This is common older advice, but current research shows it
+carries a documented "stuck underclock" risk on some driver/Windows version
+combinations, and modern CPU boost/thermal management already handles this
+better than a static cap. Cargo-culting outdated tuning advice would have
+been easy to include and wrong to include.
+
+Linux gets a smaller, more honest addition: a check for whether
+[TLP](https://linrunner.de/tlp/index.html) is installed. Research was clear
+that TLP is already the right tool for CPU/USB/PCI/radio-level power tuning
+on Linux, and that running two tools which both try to own those same
+levers causes conflicts - so this daemon deliberately does not duplicate
+that. It only checks for TLP's presence and recommends installing it if
+missing; if present, it says so and stays out of the way.
+
+macOS gets neither yet - both would need real hardware to verify against
+(`powermetrics` for energy impact, similar to how the Windows `powercfg`
+parser was built against a real report), and none was available. Sleep
+Study (`powercfg /sleepstudy` - diagnosing battery drain specifically
+*during* Modern Standby sleep, a genuine blind spot versus this project's
+always-awake monitoring) was also researched and deliberately deferred:
+verifying its parser needs several real sleep sessions' worth of data to
+validate against, which wasn't available in one sitting - a good candidate
+for a future pass.
 
 ## Self-update
 

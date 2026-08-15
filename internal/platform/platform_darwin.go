@@ -143,6 +143,23 @@ func (darwinBackend) TrimMemory(pid int) (int64, error) {
 	return 0, nil
 }
 
+// TimerResolution: no equivalent implemented for macOS yet - see README's
+// platform status table. Returning (0, false) rather than a fabricated
+// number.
+func (darwinBackend) TimerResolution() (float64, bool) {
+	return 0, false
+}
+
+// EnergyAudit: not implemented for macOS yet. macOS's analogue would be
+// `powermetrics` (per-process energy impact, needs sudo) or Activity
+// Monitor's Energy tab - deliberately not built without a Mac available to
+// verify the parsing against real output, the same standard applied to the
+// Windows implementation (which WAS verified against a real report before
+// being written). Returning a clear error rather than a fake empty result.
+func (darwinBackend) EnergyAudit() (*EnergyAuditResult, error) {
+	return nil, fmt.Errorf("energy audit not implemented on macOS yet")
+}
+
 func launchAgentsDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {

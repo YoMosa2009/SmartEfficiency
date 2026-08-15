@@ -80,6 +80,22 @@ func (windowsBackend) TrimMemory(pid int) (int64, error) {
 	return 0, nil
 }
 
+func (windowsBackend) TimerResolution() (float64, bool) {
+	_, _, current, ok := queryTimerResolution()
+	if !ok || current == 0 {
+		return 0, false
+	}
+	ms := float64(current) / 10000.0
+	// Finer than 10ms is meaningfully below the 15.625ms default - the same
+	// threshold used by the PowerShell version's Monitor.ps1, kept
+	// consistent between the two so "elevated" means the same thing in both.
+	return ms, current < 100000
+}
+
+func (windowsBackend) EnergyAudit() (*EnergyAuditResult, error) {
+	return winEnergyAudit()
+}
+
 func (windowsBackend) InstallAutostart(daemonPath, trayPath string) error {
 	return winInstallTasks(daemonPath, trayPath)
 }

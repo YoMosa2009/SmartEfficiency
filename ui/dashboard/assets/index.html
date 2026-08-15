@@ -152,6 +152,12 @@
   </div>
 
   <div class="card">
+    <div class="row"><span class="label">Timer resolution</span><span class="value" id="timerRes">-</span></div>
+    <div class="row"><span class="label">Energy audit</span><span class="value" id="energyAudit">-</span></div>
+    <div id="energyIssues" class="sub" style="margin-top:8px; display:none; line-height:1.6;"></div>
+  </div>
+
+  <div class="card">
     <div class="row"><span class="label">Version</span><span class="value" id="version">-</span></div>
     <div class="row"><span class="label">Platform backend</span><span class="value" id="backend">-</span></div>
     <div class="row"><span class="label">Last update</span><span class="value" id="updated">-</span></div>
@@ -196,6 +202,33 @@ async function refresh() {
     document.getElementById('throttled').textContent = s.ThrottledCount + ' process(es)';
     document.getElementById('freed').textContent = (s.RamFreedTodayMB || 0).toFixed(0) + ' MB';
     document.getElementById('foreground').textContent = s.ForegroundName || 'n/a';
+
+    const timerResEl = document.getElementById('timerRes');
+    if (s.TimerResolutionMs > 0) {
+      timerResEl.textContent = s.TimerResolutionMs.toFixed(2) + 'ms' + (s.TimerResolutionElevated ? ' (elevated - costing battery)' : ' (normal)');
+      timerResEl.className = 'value' + (s.TimerResolutionElevated ? ' warn' : '');
+    } else {
+      timerResEl.textContent = 'n/a on this platform';
+    }
+
+    const energyEl = document.getElementById('energyAudit');
+    const issuesEl = document.getElementById('energyIssues');
+    if (s.EnergyAudit) {
+      const ea = s.EnergyAudit;
+      energyEl.textContent = ea.ErrorCount + ' error(s), ' + ea.WarnCount + ' warning(s)';
+      energyEl.className = 'value' + (ea.ErrorCount > 0 ? ' danger' : (ea.WarnCount > 0 ? ' warn' : ''));
+      if (ea.TopIssues && ea.TopIssues.length) {
+        issuesEl.style.display = 'block';
+        issuesEl.innerHTML = ea.TopIssues.slice(0, 5).map(i =>
+          '&bull; [' + i.Severity + '] ' + i.Category + ': ' + i.Name + (i.Count > 1 ? ' (x' + i.Count + ')' : '')
+        ).join('<br>');
+      } else {
+        issuesEl.style.display = 'none';
+      }
+    } else {
+      energyEl.textContent = 'not run yet';
+      issuesEl.style.display = 'none';
+    }
 
     document.getElementById('version').textContent = s.Version || 'dev';
     document.getElementById('footerVersion').textContent = s.Version || 'dev';

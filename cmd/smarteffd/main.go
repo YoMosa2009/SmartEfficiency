@@ -37,7 +37,22 @@ func exeExt() string {
 func main() {
 	install := flag.Bool("install", false, "register daemon+tray to run automatically at logon, then exit (used by the install scripts; may require running elevated)")
 	uninstall := flag.Bool("uninstall", false, "remove the autostart registration created by -install, then exit")
+	audit := flag.Bool("audit", false, "run a platform energy diagnostic, cache the result for the dashboard, then exit (Windows: requires admin - runs via its own weekly scheduled task, see -install)")
 	flag.Parse()
+
+	if *audit {
+		result, err := platform.New().EnergyAudit()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "smarteffd: energy audit failed:", err)
+			os.Exit(1)
+		}
+		if err := ipc.WriteEnergyAudit(result); err != nil {
+			fmt.Fprintln(os.Stderr, "smarteffd: could not cache energy audit result:", err)
+			os.Exit(1)
+		}
+		fmt.Printf("smarteffd: energy audit complete - %d error(s), %d warning(s)\n", result.ErrorCount, result.WarnCount)
+		return
+	}
 
 	if *install || *uninstall {
 		dir, err := config.Dir()

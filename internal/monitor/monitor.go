@@ -45,6 +45,8 @@ type Loop struct {
 
 	ramFreedTodayBytes int64
 	ramFreedDay        string
+
+	timerResElevatedSince time.Time // zero value = not currently elevated
 }
 
 func New(backend platform.Backend, watcher *config.Watcher, version string) *Loop {
@@ -91,6 +93,26 @@ func (l *Loop) Cycle() ipc.Status {
 		status.HighPressure = ram >= cfg.RamPressureHighPct
 	} else {
 		status.RamPercent = -1
+	}
+
+	// Timer-resolution watch: cheap enough to check every cycle. Only
+	// counts as "elevated" in Status once sustained 5+ minutes, matching
+	// the PowerShell version's threshold - a brief request (video playback
+	// starting, an animation) is normal and not worth surfacing.
+	if ms, elevated := l.backend.TimerResolution(); ms > 0 {
+		status.TimerResolutionMs = ms
+		if elevated {
+			if l.timerResElevatedSince.IsZero() {
+				l.timerResElevatedSince = now
+			}
+			status.TimerResolutionElevated = now.Sub(l.timerResElevatedSince) >= 5*time.Minute
+		} else {
+			l.timerResElevatedSince = time.Time{}
+		}
+	}
+
+	if audit, err := ipc.ReadEnergyAudit(); err == nil {
+		status.EnergyAudit = audit
 	}
 
 	if !cfg.Enabled {

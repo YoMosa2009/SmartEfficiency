@@ -39,6 +39,10 @@ type Status struct {
 	ForegroundName   string    `json:"ForegroundName"`
 	UpdateAvailable  string    `json:"UpdateAvailable"` // new version tag, empty if up to date
 	LastError        string    `json:"LastError,omitempty"`
+
+	TimerResolutionMs      float64                     `json:"TimerResolutionMs"`
+	TimerResolutionElevated bool                       `json:"TimerResolutionElevated"` // sustained 5+ min, not a momentary blip
+	EnergyAudit             *platform.EnergyAuditResult `json:"EnergyAudit,omitempty"`
 }
 
 func statusPath() (string, error) {
@@ -79,6 +83,52 @@ func ReadStatus() (Status, error) {
 		return Status{}, err
 	}
 	return s, nil
+}
+
+// --- Energy audit cache. EnergyAudit() is slow/privileged (see
+// platform.Backend.EnergyAudit), so it runs as a separate periodic/on-demand
+// step (cmd/smarteffd -audit, elevated) rather than in the daemon's own hot
+// loop. The result is cached here as JSON; the daemon picks it up into
+// Status on its next cycle, same pattern as everything else in this file.
+
+func energyAuditPath() (string, error) {
+	dir, err := config.Dir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "energy-audit.json"), nil
+}
+
+func WriteEnergyAudit(r *platform.EnergyAuditResult) error {
+	p, err := energyAuditPath()
+	if err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(r, "", "  ")
+	if err != nil {
+		return err
+	}
+	tmp := p + ".tmp"
+	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, p)
+}
+
+func ReadEnergyAudit() (*platform.EnergyAuditResult, error) {
+	p, err := energyAuditPath()
+	if err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(p)
+	if err != nil {
+		return nil, err
+	}
+	var r platform.EnergyAuditResult
+	if err := json.Unmarshal(data, &r); err != nil {
+		return nil, err
+	}
+	return &r, nil
 }
 
 // --- PID files, used by the daemon/tray mutual watchdog (see

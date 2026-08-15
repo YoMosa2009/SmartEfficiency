@@ -13,6 +13,8 @@
 // versus written-against-docs-but-untested.
 package platform
 
+import "time"
+
 // Tier is how aggressively a process should be throttled right now.
 type Tier int
 
@@ -33,6 +35,26 @@ type BatteryInfo struct {
 type ProcInfo struct {
 	PID  int
 	Name string
+}
+
+// EnergyIssue is one deduplicated finding from a platform-native energy
+// diagnostic (Windows: powercfg /energy; Linux: TLP presence/absence).
+type EnergyIssue struct {
+	Severity string // "Error" | "Warning" | "Info"
+	Category string
+	Name     string
+	Detail   string
+	Count    int // how many near-identical raw findings this line represents
+}
+
+// EnergyAuditResult is the outcome of a (typically slow, sometimes
+// privileged) periodic energy diagnostic - not something to run every poll
+// cycle. See Backend.EnergyAudit.
+type EnergyAuditResult struct {
+	RanAt      time.Time
+	ErrorCount int
+	WarnCount  int
+	TopIssues  []EnergyIssue
 }
 
 // Backend is the full set of OS-specific operations SmartEfficiency needs.
@@ -65,6 +87,23 @@ type Backend interface {
 	// TrimMemory best-effort trims pid's resident memory. Returns bytes
 	// freed if measurable, else 0. Never an error for "nothing to trim".
 	TrimMemory(pid int) (int64, error)
+
+	// TimerResolution returns the current system timer resolution in
+	// milliseconds and whether it's meaningfully elevated above the
+	// platform default (some process is holding a high-precision timer
+	// request, which per Microsoft's own measurements can cost 10-25% extra
+	// system power by keeping the CPU out of deep idle states). Cheap
+	// enough to call every poll cycle. Returns (0, false) on platforms with
+	// no equivalent concept exposed the same way (currently: Linux, macOS).
+	TimerResolution() (ms float64, elevated bool)
+
+	// EnergyAudit runs a platform-native energy diagnostic and returns a
+	// deduplicated summary. Unlike everything else in this interface, this
+	// is explicitly NOT meant to run every cycle - it's slow (Windows:
+	// ~20s of active measurement) and/or privileged (Windows: requires
+	// admin). Callers should run this on a long timer (daily/weekly) or on
+	// explicit user request, never in the hot poll loop.
+	EnergyAudit() (*EnergyAuditResult, error)
 
 	// InstallAutostart registers the daemon+tray to run automatically in the
 	// background, survive reboots/logons, and restart if killed. May require

@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 )
 
 // linuxBackend is written against documented Linux APIs/tools (/proc,
@@ -166,6 +167,47 @@ func (linuxBackend) SetTier(pid int, tier Tier) error {
 // "nothing to trim" is expected behavior here, not a failure.
 func (linuxBackend) TrimMemory(pid int) (int64, error) {
 	return 0, nil
+}
+
+// TimerResolution: Linux doesn't expose an equivalent of Windows'
+// NtQueryTimerResolution the same way - there's no single system-wide
+// "current timer resolution" value an unprivileged process can cheaply
+// read every cycle. Returning (0, false) rather than guessing.
+func (linuxBackend) TimerResolution() (float64, bool) {
+	return 0, false
+}
+
+// EnergyAudit deliberately does NOT reimplement device/CPU-level power
+// tuning (CPU governor, USB/PCI autosuspend, radio power save) - research
+// while building this was explicit that TLP already does this well, and
+// "TLP and PowerTOP... running both simultaneously causes conflicts" for
+// tools that both try to own the same levers. Since this daemon's own lever
+// (nice-based background throttling) doesn't overlap with what TLP
+// controls, there's no actual conflict - but duplicating TLP's job would be
+// wasted effort at best and a fight over the same settings at worst. So
+// this just checks whether TLP is present and reports that, rather than
+// running its own device-level diagnostic.
+func (linuxBackend) EnergyAudit() (*EnergyAuditResult, error) {
+	result := &EnergyAuditResult{RanAt: time.Now()}
+	if _, err := exec.LookPath("tlp"); err == nil {
+		result.TopIssues = append(result.TopIssues, EnergyIssue{
+			Severity: "Info",
+			Category: "Power management",
+			Name:     "TLP detected",
+			Detail:   "TLP is installed and handles CPU/USB/PCI/radio power tuning - this daemon intentionally does not duplicate that.",
+			Count:    1,
+		})
+	} else {
+		result.WarnCount = 1
+		result.TopIssues = append(result.TopIssues, EnergyIssue{
+			Severity: "Warning",
+			Category: "Power management",
+			Name:     "TLP not found",
+			Detail:   "TLP is the widely-recommended tool for Linux laptop power tuning (CPU/USB/PCI/radio) - this daemon only handles background-app throttling, not device-level power management. Consider installing TLP.",
+			Count:    1,
+		})
+	}
+	return result, nil
 }
 
 func (linuxBackend) InstallAutostart(daemonPath, trayPath string) error {

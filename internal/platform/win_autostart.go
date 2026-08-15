@@ -35,8 +35,9 @@ import (
 // third scheduled task.
 
 const (
-	daemonTaskName = "SmartEfficiencyGoDaemon"
-	trayTaskName   = "SmartEfficiencyGoTray"
+	daemonTaskName      = "SmartEfficiencyGoDaemon"
+	trayTaskName        = "SmartEfficiencyGoTray"
+	energyAuditTaskName = "SmartEfficiencyGoEnergyAudit"
 )
 
 func currentUsername() (string, error) {
@@ -101,11 +102,66 @@ func taskXML(name, execPath string) (string, error) {
 	return xml, nil
 }
 
-func registerTask(name, execPath string) error {
-	xml, err := taskXML(name, execPath)
+// taskXMLWeeklyElevated builds a task definition for the energy audit:
+// weekly (not at-logon), RunLevel=Highest so it auto-elevates without a UAC
+// prompt on a local admin account (the same way Task Scheduler has always
+// handled "Run with highest privileges" for unattended tasks) - registered
+// once, during the same already-elevated -install step as the daemon/tray,
+// so no extra prompt is needed beyond what install already requires.
+func taskXMLWeeklyElevated(name, execPath string) (string, error) {
+	uname, err := currentUsername()
 	if err != nil {
-		return err
+		return "", err
 	}
+	esc := func(s string) string {
+		r := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", `"`, "&quot;")
+		return r.Replace(s)
+	}
+	xml := `<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>SmartEfficiency (Go) - ` + esc(name) + `</Description>
+  </RegistrationInfo>
+  <Triggers>
+    <CalendarTrigger>
+      <Enabled>true</Enabled>
+      <StartBoundary>2020-01-05T03:00:00</StartBoundary>
+      <ScheduleByWeek>
+        <DaysOfWeek><Sunday /></DaysOfWeek>
+        <WeeksInterval>1</WeeksInterval>
+      </ScheduleByWeek>
+    </CalendarTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <UserId>` + esc(uname) + `</UserId>
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>HighestAvailable</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <ExecutionTimeLimit>PT5M</ExecutionTimeLimit>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>` + esc(execPath) + `</Command>
+      <Arguments>-audit</Arguments>
+    </Exec>
+  </Actions>
+</Task>`
+	return xml, nil
+}
+
+func registerTaskXML(name, xml string) error {
 	tmp, err := os.CreateTemp("", "smarteff-task-*.xml")
 	if err != nil {
 		return err
@@ -130,6 +186,14 @@ func registerTask(name, execPath string) error {
 	return nil
 }
 
+func registerTask(name, execPath string) error {
+	xml, err := taskXML(name, execPath)
+	if err != nil {
+		return err
+	}
+	return registerTaskXML(name, xml)
+}
+
 func winInstallTasks(daemonPath, trayPath string) error {
 	if err := registerTask(daemonTaskName, daemonPath); err != nil {
 		return err
@@ -137,10 +201,24 @@ func winInstallTasks(daemonPath, trayPath string) error {
 	if err := registerTask(trayTaskName, trayPath); err != nil {
 		return err
 	}
+	// Energy audit uses the daemon binary itself (invoked with -audit), not
+	// a separate executable - one less thing to build/ship.
+	auditXML, err := taskXMLWeeklyElevated(energyAuditTaskName, daemonPath)
+	if err != nil {
+		return err
+	}
+	if err := registerTaskXML(energyAuditTaskName, auditXML); err != nil {
+		return err
+	}
 	return winStartTasks()
 }
 
 func winUninstallTasks() error {
+	if out, err := exec.Command("schtasks.exe", "/Delete", "/TN", energyAuditTaskName, "/F").CombinedOutput(); err != nil &&
+		!strings.Contains(strings.ToLower(string(out)), "cannot find") {
+		// Best-effort - don't fail the whole uninstall over the audit task specifically.
+		_ = err
+	}
 	var firstErr error
 	for _, n := range []string{daemonTaskName, trayTaskName} {
 		out, err := exec.Command("schtasks.exe", "/Delete", "/TN", n, "/F").CombinedOutput()

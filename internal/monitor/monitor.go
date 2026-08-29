@@ -41,6 +41,7 @@ type Loop struct {
 
 	lastForeground map[int]time.Time
 	currentTier    map[int]platform.Tier
+	lastTierChange map[int]time.Time
 	lastTrim       map[int]time.Time
 
 	ramFreedTodayBytes int64
@@ -56,6 +57,7 @@ func New(backend platform.Backend, watcher *config.Watcher, version string) *Loo
 		version:        version,
 		lastForeground: map[int]time.Time{},
 		currentTier:    map[int]platform.Tier{},
+		lastTierChange: map[int]time.Time{},
 		lastTrim:       map[int]time.Time{},
 	}
 }
@@ -175,21 +177,37 @@ func (l *Loop) Cycle() ipc.Status {
 			wantTier = platform.TierEfficiency
 		}
 
-		if wantTier == platform.TierEfficiency {
-			throttled++
-		}
-
-		if l.currentTier[p.PID] != wantTier {
-			if err := l.backend.SetTier(p.PID, wantTier); err == nil {
-				l.currentTier[p.PID] = wantTier
+		// Dwell hysteresis: without this, a process whose idle/pressure signal
+		// hovers right at a threshold flips tier every single poll cycle -
+		// real EcoQoS/thread QoS churn, not free. Once applied, a tier holds
+		// for at least ThrottleMinDwellSeconds before the opposite transition
+		// is allowed - except becoming foreground, which always restores to
+		// normal instantly (responsiveness for the app you just focused
+		// matters more than smoothing out the toggle rate).
+		effectiveTier := l.currentTier[p.PID] // zero value = TierNormal for a never-seen pid
+		if effectiveTier != wantTier {
+			dwell := time.Duration(cfg.ThrottleMinDwellSeconds) * time.Second
+			if dwell <= 0 {
+				dwell = 45 * time.Second
+			}
+			last, everChanged := l.lastTierChange[p.PID]
+			if isForeground || !everChanged || now.Sub(last) >= dwell {
+				if err := l.backend.SetTier(p.PID, wantTier); err == nil {
+					l.currentTier[p.PID] = wantTier
+					l.lastTierChange[p.PID] = now
+					effectiveTier = wantTier
+				}
 			}
 		}
 
-		if wantTier == platform.TierEfficiency {
+		if effectiveTier == platform.TierEfficiency {
+			throttled++
+
 			last, ok := l.lastTrim[p.PID]
 			if !ok || now.Sub(last) >= 10*time.Minute {
 				l.lastTrim[p.PID] = now
-				if freed, err := l.backend.TrimMemory(p.PID); err == nil {
+				maxBytes := int64(cfg.RamTrimMaxWorkingSetMB) * 1024 * 1024
+				if freed, skipped, err := l.backend.TrimMemory(p.PID, maxBytes); err == nil && !skipped {
 					l.ramFreedTodayBytes += freed
 				}
 			}
@@ -206,6 +224,11 @@ func (l *Loop) Cycle() ipc.Status {
 	for pid := range l.currentTier {
 		if !seen[pid] {
 			delete(l.currentTier, pid)
+		}
+	}
+	for pid := range l.lastTierChange {
+		if !seen[pid] {
+			delete(l.lastTierChange, pid)
 		}
 	}
 	for pid := range l.lastTrim {

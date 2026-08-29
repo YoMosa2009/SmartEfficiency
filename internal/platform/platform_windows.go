@@ -62,22 +62,25 @@ func (windowsBackend) SetTier(pid int, tier Tier) error {
 	return nil
 }
 
-func (windowsBackend) TrimMemory(pid int) (int64, error) {
+func (windowsBackend) TrimMemory(pid int, maxBytes int64) (int64, bool, error) {
 	h, ok := openProcess(processSetQuota|processQueryLimitedInformation|processVMRead, uint32(pid))
 	if !ok {
-		return 0, fmt.Errorf("OpenProcess(%d) failed", pid)
+		return 0, false, fmt.Errorf("OpenProcess(%d) failed", pid)
 	}
 	defer closeHandle(h)
 
 	before, _ := getWorkingSetSize(h)
+	if maxBytes > 0 && int64(before) > maxBytes {
+		return 0, true, nil
+	}
 	if !emptyWorkingSet(h) {
-		return 0, fmt.Errorf("EmptyWorkingSet(%d) failed", pid)
+		return 0, false, fmt.Errorf("EmptyWorkingSet(%d) failed", pid)
 	}
 	after, _ := getWorkingSetSize(h)
 	if before > after {
-		return int64(before - after), nil
+		return int64(before - after), false, nil
 	}
-	return 0, nil
+	return 0, false, nil
 }
 
 func (windowsBackend) TimerResolution() (float64, bool) {

@@ -14,18 +14,20 @@ import (
 // Config mirrors the fields used by the original PowerShell config.json,
 // plus a couple of new fields for the Go version (update channel, enabled).
 type Config struct {
-	Enabled                  bool `json:"Enabled"`
-	PollIntervalSeconds      int  `json:"PollIntervalSeconds"`
-	IdleSecondsBase          int  `json:"IdleSecondsBase"`
-	IdleSecondsOnBattery     int  `json:"IdleSecondsOnBattery"`
-	RamPressureHighPct       int  `json:"RamPressureHighPct"`
-	StartupScanIntervalSeconds int `json:"StartupScanIntervalSeconds"`
-	WakeAuditIntervalSeconds  int  `json:"WakeAuditIntervalSeconds"`
-	ChargeNudgeEnabled        bool `json:"ChargeNudgeEnabled"`
-	ChargeNudgePercent        int  `json:"ChargeNudgePercent"`
-	AutoUpdateEnabled         bool `json:"AutoUpdateEnabled"`
-	AutoUpdateCheckIntervalHours int `json:"AutoUpdateCheckIntervalHours"`
-	ExcludedProcessNames      []string `json:"ExcludedProcessNames"`
+	Enabled                      bool     `json:"Enabled"`
+	PollIntervalSeconds          int      `json:"PollIntervalSeconds"`
+	IdleSecondsBase              int      `json:"IdleSecondsBase"`
+	IdleSecondsOnBattery         int      `json:"IdleSecondsOnBattery"`
+	RamPressureHighPct           int      `json:"RamPressureHighPct"`
+	RamTrimMaxWorkingSetMB       int      `json:"RamTrimMaxWorkingSetMB"`
+	ThrottleMinDwellSeconds      int      `json:"ThrottleMinDwellSeconds"`
+	StartupScanIntervalSeconds   int      `json:"StartupScanIntervalSeconds"`
+	WakeAuditIntervalSeconds     int      `json:"WakeAuditIntervalSeconds"`
+	ChargeNudgeEnabled           bool     `json:"ChargeNudgeEnabled"`
+	ChargeNudgePercent           int      `json:"ChargeNudgePercent"`
+	AutoUpdateEnabled            bool     `json:"AutoUpdateEnabled"`
+	AutoUpdateCheckIntervalHours int      `json:"AutoUpdateCheckIntervalHours"`
+	ExcludedProcessNames         []string `json:"ExcludedProcessNames"`
 }
 
 // Default returns safe fallback settings, used both as the on-disk default
@@ -33,27 +35,37 @@ type Config struct {
 // ever unreadable/corrupt mid-run.
 func Default() Config {
 	return Config{
-		Enabled:                     true,
-		PollIntervalSeconds:         15,
-		IdleSecondsBase:             120,
-		IdleSecondsOnBattery:        60,
-		RamPressureHighPct:          85,
-		StartupScanIntervalSeconds:  300,
-		WakeAuditIntervalSeconds:    3600,
-		ChargeNudgeEnabled:          true,
-		ChargeNudgePercent:          80,
-		AutoUpdateEnabled:           true,
+		Enabled:                      true,
+		PollIntervalSeconds:          15,
+		IdleSecondsBase:              120,
+		IdleSecondsOnBattery:         60,
+		RamPressureHighPct:           85,
+		RamTrimMaxWorkingSetMB:       1536,
+		ThrottleMinDwellSeconds:      45,
+		StartupScanIntervalSeconds:   300,
+		WakeAuditIntervalSeconds:     3600,
+		ChargeNudgeEnabled:           true,
+		ChargeNudgePercent:           80,
+		AutoUpdateEnabled:            true,
 		AutoUpdateCheckIntervalHours: 24,
 		ExcludedProcessNames: []string{
 			"ProcessLasso", "ProcessGovernor", "smarteffd", "smarteff-tray",
+			// Real-time/interactive engines: EcoQoS + working-set trimming are
+			// actively harmful here, and Roblox Studio's own Play/Test modes
+			// spawn one process per server + per client (per Roblox's dev
+			// docs), so the process actually driving what the user is
+			// watching is very often not the foreground window - foreground-
+			// based idle detection misfires for it specifically.
+			"RobloxStudioBeta", "RobloxPlayerBeta", "RobloxCrashHandler",
 		},
 	}
 }
 
 // Dir returns the per-OS base directory SmartEfficiency stores its state in:
-//   Windows: %LOCALAPPDATA%\SmartEfficiency
-//   Linux:   $XDG_DATA_HOME/smartefficiency (falls back to ~/.local/share/smartefficiency)
-//   macOS:   ~/Library/Application Support/SmartEfficiency
+//
+//	Windows: %LOCALAPPDATA%\SmartEfficiency
+//	Linux:   $XDG_DATA_HOME/smartefficiency (falls back to ~/.local/share/smartefficiency)
+//	macOS:   ~/Library/Application Support/SmartEfficiency
 func Dir() (string, error) {
 	dir, err := baseDir()
 	if err != nil {
@@ -123,8 +135,8 @@ func Save(cfg Config) error {
 // "reloaded live every cycle" behavior) without needing a filesystem-events
 // dependency, which varies more across platforms.
 type Watcher struct {
-	mu   sync.RWMutex
-	cur  Config
+	mu  sync.RWMutex
+	cur Config
 }
 
 func NewWatcher() *Watcher {

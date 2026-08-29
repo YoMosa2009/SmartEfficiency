@@ -139,8 +139,8 @@ func (darwinBackend) SetTier(pid int, tier Tier) error {
 // TrimMemory: no public, unprivileged API exists on macOS to trim another
 // process's resident memory (task ports for other processes are
 // entitlement-gated). Documented no-op, same reasoning as Linux.
-func (darwinBackend) TrimMemory(pid int) (int64, error) {
-	return 0, nil
+func (darwinBackend) TrimMemory(pid int, maxBytes int64) (int64, bool, error) {
+	return 0, false, nil
 }
 
 // TimerResolution: no equivalent implemented for macOS yet - see README's

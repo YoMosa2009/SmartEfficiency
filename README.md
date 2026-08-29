@@ -66,6 +66,26 @@ Every poll cycle (default 15s):
 (see platform notes below for what that actually gets you on each OS -
 it's not the same guarantee everywhere).
 
+**Real-time apps are excluded by default, and memory trims have a size cap.**
+Both EcoQoS and Windows' `EmptyWorkingSet` are explicitly discouraged for
+foreground/interactive workloads - EcoQoS "can cause lag, slower rendering,
+or stuttering" when applied to gaming apps, and `EmptyWorkingSet` doesn't
+actually free memory a process needs again soon, it forces every page back
+in via hard faults on next access, which is exactly the multi-second-stall
+mechanism this project confirmed in the wild against Roblox Studio: its own
+"Play"/"Test" modes spawn one process per server plus one per client, so the
+process doing the real work is very often *not* the focused window, and
+foreground-based idle detection misfires for it specifically. `RobloxStudioBeta`,
+`RobloxPlayerBeta`, and `RobloxCrashHandler` are excluded out of the box for
+this reason. `RamTrimMaxWorkingSetMB` is a second, generic net for any other
+big interactive app not on that list: memory trims are skipped outright above
+that size regardless of exclusion status. `ThrottleMinDwellSeconds` adds
+hysteresis on top - once a tier change is applied it holds for a minimum
+stretch before reversing, so a process whose CPU or RAM signal hovers right
+at a threshold doesn't flip tiers (and the EcoQoS/thread-QoS churn that comes
+with each flip) every single poll cycle. None of this applies to the
+always-instant restore-to-normal the moment a process becomes focused.
+
 ## Platform status
 
 Every mechanism this tool relies on - process throttling, memory trimming,
@@ -181,7 +201,9 @@ reloaded live - no restart needed after editing it.
 | `RamPressureHighPct` | `85` | RAM% that triggers "throttle everything unfocused now" |
 | `AutoUpdateEnabled` | `true` | Whether to check GitHub for updates at all |
 | `AutoUpdateCheckIntervalHours` | `24` | How often to check |
-| `ExcludedProcessNames` | `[]` | Process names to never throttle, in addition to the built-in critical list |
+| `ExcludedProcessNames` | Process Lasso, Roblox (see below) | Process names to never throttle, in addition to the built-in critical list |
+| `RamTrimMaxWorkingSetMB` | `1536` | Skip memory trimming above this working-set size (see below) |
+| `ThrottleMinDwellSeconds` | `45` | Minimum time a tier change holds before the opposite change is allowed (see below) |
 
 ## Files
 

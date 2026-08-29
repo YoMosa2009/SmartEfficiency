@@ -165,8 +165,8 @@ func (linuxBackend) SetTier(pid int, tier Tier) error {
 // relief on Linux mostly comes from the kernel's own reclaim, which is
 // already fairly aggressive. Returning (0, nil) rather than an error since
 // "nothing to trim" is expected behavior here, not a failure.
-func (linuxBackend) TrimMemory(pid int) (int64, error) {
-	return 0, nil
+func (linuxBackend) TrimMemory(pid int, maxBytes int64) (int64, bool, error) {
+	return 0, false, nil
 }
 
 // TimerResolution: Linux doesn't expose an equivalent of Windows'

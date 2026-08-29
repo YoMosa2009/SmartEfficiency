@@ -84,9 +84,16 @@ type Backend interface {
 	// Must be idempotent - called every cycle with the process's current tier.
 	SetTier(pid int, tier Tier) error
 
-	// TrimMemory best-effort trims pid's resident memory. Returns bytes
-	// freed if measurable, else 0. Never an error for "nothing to trim".
-	TrimMemory(pid int) (int64, error)
+	// TrimMemory best-effort trims pid's resident memory, unless its current
+	// working set already exceeds maxBytes (0 = no cap), in which case it
+	// skips the trim entirely and returns skipped=true. The cap exists
+	// because trimming does not return memory a still-active process needs
+	// again soon - it forces every page back in via hard faults on next
+	// access, and for a multi-GB working set (a big interactive app - the
+	// kind most likely to be touched again within seconds) that shows up as
+	// a real multi-second stall, not a free win. Returns bytes freed if
+	// measurable, else 0. Never an error for "nothing to trim".
+	TrimMemory(pid int, maxBytes int64) (freed int64, skipped bool, err error)
 
 	// TimerResolution returns the current system timer resolution in
 	// milliseconds and whether it's meaningfully elevated above the

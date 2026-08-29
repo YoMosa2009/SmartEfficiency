@@ -27,7 +27,7 @@ func PNG() []byte {
 	innerR := outerR * 0.55
 
 	ringColor := color.RGBA{0x22, 0xc5, 0x5e, 0xff} // green
-	dotColor := color.RGBA{0x16, 0x8a, 0x40, 0xff}   // darker green
+	dotColor := color.RGBA{0x16, 0x8a, 0x40, 0xff}  // darker green
 
 	for y := 0; y < size; y++ {
 		for x := 0; x < size; x++ {
@@ -64,10 +64,10 @@ func ICO() []byte {
 	binary.Write(&buf, binary.LittleEndian, uint16(1))
 
 	// ICONDIRENTRY
-	buf.WriteByte(size) // width (32 fits in one byte; 256 would need 0)
-	buf.WriteByte(size) // height
-	buf.WriteByte(0)    // color count (0 = no palette)
-	buf.WriteByte(0)    // reserved
+	buf.WriteByte(size)                                 // width (32 fits in one byte; 256 would need 0)
+	buf.WriteByte(size)                                 // height
+	buf.WriteByte(0)                                    // color count (0 = no palette)
+	buf.WriteByte(0)                                    // reserved
 	binary.Write(&buf, binary.LittleEndian, uint16(1))  // color planes
 	binary.Write(&buf, binary.LittleEndian, uint16(32)) // bits per pixel
 	binary.Write(&buf, binary.LittleEndian, uint32(len(png)))

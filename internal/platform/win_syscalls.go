@@ -22,14 +22,14 @@ var (
 
 	procNtQueryTimerResolution = ntdll.NewProc("NtQueryTimerResolution")
 
-	procGlobalMemoryStatusEx  = kernel32.NewProc("GlobalMemoryStatusEx")
-	procGetSystemPowerStatus  = kernel32.NewProc("GetSystemPowerStatus")
-	procOpenProcess           = kernel32.NewProc("OpenProcess")
-	procCloseHandle           = kernel32.NewProc("CloseHandle")
-	procSetProcessInformation = kernel32.NewProc("SetProcessInformation")
+	procGlobalMemoryStatusEx     = kernel32.NewProc("GlobalMemoryStatusEx")
+	procGetSystemPowerStatus     = kernel32.NewProc("GetSystemPowerStatus")
+	procOpenProcess              = kernel32.NewProc("OpenProcess")
+	procCloseHandle              = kernel32.NewProc("CloseHandle")
+	procSetProcessInformation    = kernel32.NewProc("SetProcessInformation")
 	procCreateToolhelp32Snapshot = kernel32.NewProc("CreateToolhelp32Snapshot")
-	procProcess32FirstW       = kernel32.NewProc("Process32FirstW")
-	procProcess32NextW        = kernel32.NewProc("Process32NextW")
+	procProcess32FirstW          = kernel32.NewProc("Process32FirstW")
+	procProcess32NextW           = kernel32.NewProc("Process32NextW")
 
 	procGetForegroundWindow      = user32.NewProc("GetForegroundWindow")
 	procGetWindowThreadProcessId = user32.NewProc("GetWindowThreadProcessId")
@@ -91,16 +91,16 @@ type processMemoryCounters struct {
 
 // processEntry32 mirrors PROCESSENTRY32W (wide-char exe name, fixed 260 buf).
 type processEntry32 struct {
-	Size              uint32
-	CntUsage          uint32
-	ProcessID         uint32
-	DefaultHeapID     uintptr
-	ModuleID          uint32
-	CntThreads        uint32
-	ParentProcessID   uint32
-	PriClassBase      int32
-	Flags             uint32
-	ExeFile           [260]uint16
+	Size            uint32
+	CntUsage        uint32
+	ProcessID       uint32
+	DefaultHeapID   uintptr
+	ModuleID        uint32
+	CntThreads      uint32
+	ParentProcessID uint32
+	PriClassBase    int32
+	Flags           uint32
+	ExeFile         [260]uint16
 }
 
 func globalMemoryStatusEx() (memoryStatusEx, bool) {

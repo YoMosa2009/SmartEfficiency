@@ -4,9 +4,10 @@
 // the whole reason "public repo" was chosen for this project (see README).
 //
 // Release asset naming this expects (produced by .github/workflows/release.yml):
-//   smarteffd-<os>-<arch>[.exe]
-//   smarteff-tray-<os>-<arch>[.exe]
-//   checksums.txt          (sha256, one "hash  filename" line per asset)
+//
+//	smarteffd-<os>-<arch>[.exe]
+//	smarteff-tray-<os>-<arch>[.exe]
+//	checksums.txt          (sha256, one "hash  filename" line per asset)
 package update
 
 import (

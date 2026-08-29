@@ -7,6 +7,7 @@
 //     re-reads it every poll cycle, so writing Config.Enabled=false from the
 //     dashboard is how "turn it off" works - no separate command channel
 //     needed)
+//
 // Both are written atomically (temp file + rename) so a reader never sees a
 // half-written file mid-update.
 package ipc
@@ -26,22 +27,22 @@ import (
 // Status is the daemon's live snapshot, read by the tray icon (for the
 // balloon/menu) and the dashboard (for the main view).
 type Status struct {
-	UpdatedAt        time.Time `json:"UpdatedAt"`
-	Version          string    `json:"Version"`
-	Backend          string    `json:"Backend"` // "windows" / "linux" / "darwin"
-	Enabled          bool      `json:"Enabled"`
-	OnBattery        bool      `json:"OnBattery"`
-	BatteryPercent   int       `json:"BatteryPercent"` // -1 = unknown/no battery
-	RamPercent       int       `json:"RamPercent"`
-	HighPressure     bool      `json:"HighPressure"`
-	ThrottledCount   int       `json:"ThrottledCount"`
-	RamFreedTodayMB  float64   `json:"RamFreedTodayMB"`
-	ForegroundName   string    `json:"ForegroundName"`
-	UpdateAvailable  string    `json:"UpdateAvailable"` // new version tag, empty if up to date
-	LastError        string    `json:"LastError,omitempty"`
+	UpdatedAt       time.Time `json:"UpdatedAt"`
+	Version         string    `json:"Version"`
+	Backend         string    `json:"Backend"` // "windows" / "linux" / "darwin"
+	Enabled         bool      `json:"Enabled"`
+	OnBattery       bool      `json:"OnBattery"`
+	BatteryPercent  int       `json:"BatteryPercent"` // -1 = unknown/no battery
+	RamPercent      int       `json:"RamPercent"`
+	HighPressure    bool      `json:"HighPressure"`
+	ThrottledCount  int       `json:"ThrottledCount"`
+	RamFreedTodayMB float64   `json:"RamFreedTodayMB"`
+	ForegroundName  string    `json:"ForegroundName"`
+	UpdateAvailable string    `json:"UpdateAvailable"` // new version tag, empty if up to date
+	LastError       string    `json:"LastError,omitempty"`
 
-	TimerResolutionMs      float64                     `json:"TimerResolutionMs"`
-	TimerResolutionElevated bool                       `json:"TimerResolutionElevated"` // sustained 5+ min, not a momentary blip
+	TimerResolutionMs       float64                     `json:"TimerResolutionMs"`
+	TimerResolutionElevated bool                        `json:"TimerResolutionElevated"` // sustained 5+ min, not a momentary blip
 	EnergyAudit             *platform.EnergyAuditResult `json:"EnergyAudit,omitempty"`
 }
 
@@ -62,7 +63,12 @@ func WriteStatus(s Status) error {
 	if err != nil {
 		return err
 	}
-	tmp := p + ".tmp"
+	// PID-suffixed tmp name (not a fixed one): written every poll cycle, so a
+	// fixed tmp name is a real collision risk if two instances ever ran at
+	// once (the PowerShell version hit exactly this - "file in use" errors
+	// traced back to a duplicate-instance bug). Cheap insurance even though
+	// this daemon's autostart is meant to be singular.
+	tmp := p + "." + strconv.Itoa(os.Getpid()) + ".tmp"
 	if err := os.WriteFile(tmp, data, 0o644); err != nil {
 		return err
 	}
@@ -108,7 +114,12 @@ func WriteEnergyAudit(r *platform.EnergyAuditResult) error {
 	if err != nil {
 		return err
 	}
-	tmp := p + ".tmp"
+	// PID-suffixed tmp name (not a fixed one): written every poll cycle, so a
+	// fixed tmp name is a real collision risk if two instances ever ran at
+	// once (the PowerShell version hit exactly this - "file in use" errors
+	// traced back to a duplicate-instance bug). Cheap insurance even though
+	// this daemon's autostart is meant to be singular.
+	tmp := p + "." + strconv.Itoa(os.Getpid()) + ".tmp"
 	if err := os.WriteFile(tmp, data, 0o644); err != nil {
 		return err
 	}

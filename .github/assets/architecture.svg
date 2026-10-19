@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="600" viewBox="0 0 1280 600" role="img" aria-labelledby="t d">
+<title id="t">SmartEfficiency architecture</title>
+<desc id="d">The OS service manager starts smarteffd and smarteff-tray. They communicate only through status.json and config.json, watch each other by PID file, and launch the short-lived smarteff-update helper, which reads GitHub Releases.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#5B6B64"/></marker>
+<marker id="g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#16A34A"/></marker></defs>
+<rect width="1280" height="600" rx="18" fill="#F5F7F6"/>
+<text x="40" y="46" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="24" font-weight="700" fill="#17241F">How the pieces fit</text>
+<text x="40" y="72" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#5B6B64">three binaries · no sockets or pipes between them — two JSON files, written atomically (temp file + rename)</text>
+<rect x="300" y="96" width="680" height="60" rx="14" fill="#FFFFFF" stroke="#E2E8E4" stroke-width="1.5"/>
+<text x="640" y="121" text-anchor="middle" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700" fill="#17241F">OS service manager</text>
+<text x="640" y="143" text-anchor="middle" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-weight="400" fill="#5B6B64">Task Scheduler (RestartOnFailure) · systemd --user (Restart=always) · launchd (KeepAlive)</text>
+<line x1="400" y1="158" x2="260" y2="206" stroke="#5B6B64" stroke-width="1.8" marker-end="url(#a)"/>
+<line x1="880" y1="158" x2="1020" y2="206" stroke="#5B6B64" stroke-width="1.8" marker-end="url(#a)"/>
+<text x="300" y="190" text-anchor="middle" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#5B6B64">start at login, restart on crash</text>
+<rect x="60" y="208" width="400" height="232" rx="14" fill="#FFFFFF" stroke="#16A34A" stroke-width="1.5"/>
+<rect x="60" y="208" width="400" height="44" rx="14" fill="#DCFCE7"/><rect x="60" y="238" width="400" height="14" fill="#DCFCE7"/>
+<text x="82" y="236" text-anchor="start" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="17" font-weight="700" fill="#17241F">smarteffd</text>
+<text x="440" y="236" text-anchor="end" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-weight="400" fill="#5B6B64">background daemon</text>
+<circle cx="86" cy="276" r="3.5" fill="#16A34A"/>
+<text x="98" y="281" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="400" fill="#17241F">poll every 15 s (PollIntervalSeconds)</text>
+<circle cx="86" cy="303" r="3.5" fill="#16A34A"/>
+<text x="98" y="308" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="400" fill="#17241F">find the focused app → keep it normal</text>
+<circle cx="86" cy="330" r="3.5" fill="#16A34A"/>
+<text x="98" y="335" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="400" fill="#17241F">idle / RAM pressure → efficiency tier</text>
+<circle cx="86" cy="357" r="3.5" fill="#16A34A"/>
+<text x="98" y="362" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="400" fill="#17241F">trim memory (Windows · size-capped)</text>
+<circle cx="86" cy="384" r="3.5" fill="#16A34A"/>
+<text x="98" y="389" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="400" fill="#17241F">timer-resolution watch · weekly energy audit</text>
+<circle cx="86" cy="411" r="3.5" fill="#16A34A"/>
+<text x="98" y="416" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="400" fill="#17241F">daily update check</text>
+<rect x="60" y="470" width="350" height="100" rx="14" fill="#FFFFFF" stroke="#E2E8E4" stroke-width="1.5"/>
+<text x="82" y="497" text-anchor="start" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="14" font-weight="700" fill="#17241F">platform.Backend</text>
+<text x="82" y="518" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-weight="400" fill="#5B6B64">Windows: EcoQoS · EmptyWorkingSet</text>
+<text x="82" y="537" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-weight="400" fill="#5B6B64">Linux: nice · xdotool (X11 only)</text>
+<line x1="260" y1="442" x2="260" y2="466" stroke="#16A34A" stroke-width="1.8" marker-end="url(#g)"/>
+<rect x="540" y="214" width="200" height="62" rx="10" fill="#FFFFFF" stroke="#E2E8E4" stroke-width="1.5"/>
+<text x="556" y="240" text-anchor="start" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="14" font-weight="700" fill="#17241F">status.json</text>
+<text x="556" y="261" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-weight="400" fill="#5B6B64">daemon → everyone</text>
+<rect x="540" y="296" width="200" height="62" rx="10" fill="#FFFFFF" stroke="#E2E8E4" stroke-width="1.5"/>
+<text x="556" y="322" text-anchor="start" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="14" font-weight="700" fill="#17241F">config.json</text>
+<text x="556" y="343" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-weight="400" fill="#5B6B64">everyone → daemon, live</text>
+<rect x="540" y="378" width="200" height="62" rx="10" fill="#FFFFFF" stroke="#E2E8E4" stroke-width="1.5"/>
+<text x="556" y="404" text-anchor="start" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="14" font-weight="700" fill="#17241F">*.pid</text>
+<text x="556" y="425" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-weight="400" fill="#5B6B64">who is alive</text>
+<line x1="462" y1="245" x2="536" y2="245" stroke="#16A34A" stroke-width="1.8" marker-end="url(#g)"/>
+<line x1="744" y1="245" x2="816" y2="245" stroke="#16A34A" stroke-width="1.8" marker-end="url(#g)"/>
+<line x1="536" y1="327" x2="462" y2="327" stroke="#16A34A" stroke-width="1.8" marker-end="url(#g)"/>
+<line x1="816" y1="327" x2="744" y2="327" stroke="#16A34A" stroke-width="1.8" marker-end="url(#g)"/>
+<line x1="462" y1="409" x2="536" y2="409" stroke="#5B6B64" stroke-width="1.8" marker-end="url(#a)"/>
+<line x1="818" y1="409" x2="744" y2="409" stroke="#5B6B64" stroke-width="1.8" marker-end="url(#a)"/>
+<rect x="820" y="208" width="400" height="232" rx="14" fill="#FFFFFF" stroke="#16A34A" stroke-width="1.5"/>
+<rect x="820" y="208" width="400" height="44" rx="14" fill="#DCFCE7"/><rect x="820" y="238" width="400" height="14" fill="#DCFCE7"/>
+<text x="842" y="236" text-anchor="start" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="17" font-weight="700" fill="#17241F">smarteff-tray</text>
+<text x="1200" y="236" text-anchor="end" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-weight="400" fill="#5B6B64">tray icon + dashboard</text>
+<circle cx="846" cy="276" r="3.5" fill="#16A34A"/>
+<text x="858" y="281" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="400" fill="#17241F">tray menu: pause / resume, open dashboard</text>
+<circle cx="846" cy="303" r="3.5" fill="#16A34A"/>
+<text x="858" y="308" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="400" fill="#17241F">dashboard on 127.0.0.1:&lt;free port&gt;</text>
+<circle cx="846" cy="330" r="3.5" fill="#16A34A"/>
+<text x="858" y="335" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="400" fill="#17241F">never bound to the network</text>
+<circle cx="846" cy="357" r="3.5" fill="#16A34A"/>
+<text x="858" y="362" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="400" fill="#17241F">toggle writes Enabled to config.json</text>
+<circle cx="846" cy="384" r="3.5" fill="#16A34A"/>
+<text x="858" y="389" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="400" fill="#17241F">“Check for updates” button</text>
+<path d="M 260 442 C 260 455, 260 455, 260 455" fill="none"/>
+<text x="640" y="464" text-anchor="middle" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-weight="600" fill="#D97706">each watches the other’s PID file (every 5 min) and relaunches it if gone</text>
+<path d="M 460 420 Q 640 480 820 420" fill="none" stroke="#D97706" stroke-width="1.8" stroke-dasharray="5 5" marker-end="url(#a)" marker-start="url(#a)"/>
+<rect x="540" y="500" width="260" height="74" rx="12" fill="#FFFFFF" stroke="#D97706" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="560" y="528" text-anchor="start" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="15" font-weight="700" fill="#17241F">smarteff-update</text>
+<text x="560" y="551" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-weight="400" fill="#5B6B64">short-lived, separate process</text>
+<text x="560" y="567" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-weight="400" fill="#5B6B64">verify SHA-256 → stop → swap → start</text>
+<text x="476" y="542" text-anchor="middle" font-family="'Segoe UI', Inter, sans-serif" font-size="11.5" fill="#5B6B64">daily</text>
+<path d="M 440 442 L 440 548 L 536 548" stroke="#5B6B64" stroke-width="1.8" fill="none" marker-end="url(#a)"/>
+<path d="M 960 442 L 960 486 L 804 520" stroke="#5B6B64" stroke-width="1.8" fill="none" marker-end="url(#a)"/>
+<rect x="990" y="500" width="230" height="74" rx="12" fill="#17241F" stroke="#17241F" stroke-width="1.5"/>
+<text x="1010" y="528" text-anchor="start" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF">GitHub Releases</text>
+<text x="1010" y="551" text-anchor="start" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="12.5" font-weight="400" fill="#9FB3AA">releases/latest</text>
+<text x="1010" y="567" text-anchor="start" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="12.5" font-weight="400" fill="#9FB3AA">checksums.txt</text>
+<line x1="802" y1="537" x2="986" y2="537" stroke="#5B6B64" stroke-width="1.8" marker-end="url(#a)"/>
+<text x="82" y="556" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#5B6B64">macOS: nice · System Events</text>
+<text x="895" y="478" font-family="'Segoe UI', Inter, sans-serif" font-size="11.5" fill="#5B6B64">on click</text>
+</svg>

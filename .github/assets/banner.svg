@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-labelledby="t d">
+<title id="t">SmartEfficiency</title>
+<desc id="d">Idle background apps are put into low-power scheduling and trimmed; the focused app stays at full speed.</desc>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F3FAF5"/><stop offset="1" stop-color="#DDF3E4"/></linearGradient>
+<linearGradient id="cell" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#22C55E"/><stop offset="1" stop-color="#16A34A"/></linearGradient>
+<clipPath id="c"><rect width="1280" height="320" rx="18"/></clipPath>
+</defs>
+<g clip-path="url(#c)">
+<rect width="1280" height="320" fill="url(#bg)"/>
+<circle cx="1180" cy="-40" r="220" fill="#16A34A" opacity="0.06"/><circle cx="1240" cy="330" r="160" fill="#16A34A" opacity="0.07"/>
+<g transform="translate(72 70)">
+<rect x="0" y="0" width="92" height="52" rx="12" fill="#FFFFFF" stroke="#17241F" stroke-width="4"/>
+<rect x="94" y="16" width="8" height="20" rx="3" fill="#17241F"/>
+<rect x="8" y="8" width="58" height="36" rx="6" fill="url(#cell)"/>
+<path d="M28 38 C 26 22, 38 12, 56 12 C 56 30, 46 40, 30 38 Z" fill="#FFFFFF" opacity="0.95"/>
+<path d="M30 37 C 36 30, 42 24, 50 18" stroke="#16A34A" stroke-width="2" fill="none" stroke-linecap="round"/>
+</g>
+<text x="72" y="178" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="56" font-weight="800" fill="#17241F" letter-spacing="-1">SmartEfficiency</text>
+<text x="74" y="216" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#3D5149">Idle background apps go quiet. The one you're using doesn't.</text>
+<rect x="74" y="244" width="206" height="30" rx="15" fill="#FFFFFF" stroke="#BFE5CC"/>
+<text x="177.0" y="264" text-anchor="middle" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="12.5" fill="#17603A">Windows · Linux · macOS</text>
+<rect x="290" y="244" width="130" height="30" rx="15" fill="#FFFFFF" stroke="#BFE5CC"/>
+<text x="355.0" y="264" text-anchor="middle" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="12.5" fill="#17603A">written in Go</text>
+<rect x="430" y="244" width="132" height="30" rx="15" fill="#FFFFFF" stroke="#BFE5CC"/>
+<text x="496.0" y="264" text-anchor="middle" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="12.5" fill="#17603A">self-updating</text>
+<rect x="572" y="244" width="216" height="30" rx="15" fill="#FFFFFF" stroke="#BFE5CC"/>
+<text x="680.0" y="264" text-anchor="middle" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="12.5" fill="#17603A">localhost-only dashboard</text>
+<rect x="820" y="48" width="400" height="224" rx="16" fill="#FFFFFF" stroke="#E2E8E4"/>
+<circle cx="844" cy="74" r="6" fill="#16A34A"/><circle cx="844" cy="74" r="10" fill="#16A34A" opacity="0.18"/>
+<text x="862" y="79" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="700" fill="#17241F">Active</text>
+<text x="1200" y="79" text-anchor="end" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="12" fill="#5B6B64">illustrative</text>
+<text x="840" y="118" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" fill="#17241F" font-weight="700">focused app</text>
+<rect x="950" y="107" width="180" height="14" rx="7" fill="#EEF3F0"/>
+<rect x="950" y="107" width="155" height="14" rx="7" fill="#16A34A"/>
+<rect x="1142" y="104" width="58" height="20" rx="10" fill="#17241F"/><text x="1171" y="118" text-anchor="middle" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="11" fill="#FFFFFF">focus</text>
+<text x="840" y="151" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" fill="#5B6B64" font-weight="400">chat client</text>
+<rect x="950" y="140" width="180" height="14" rx="7" fill="#EEF3F0"/>
+<rect x="950" y="140" width="40" height="14" rx="7" fill="#9CC9AE"/>
+<rect x="1142" y="137" width="58" height="20" rx="10" fill="#DCFCE7"/><text x="1171" y="151" text-anchor="middle" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="11" fill="#15803D">eco</text>
+<text x="840" y="184" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" fill="#5B6B64" font-weight="400">browser tabs</text>
+<rect x="950" y="173" width="180" height="14" rx="7" fill="#EEF3F0"/>
+<rect x="950" y="173" width="32" height="14" rx="7" fill="#9CC9AE"/>
+<rect x="1142" y="170" width="58" height="20" rx="10" fill="#DCFCE7"/><text x="1171" y="184" text-anchor="middle" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="11" fill="#15803D">eco</text>
+<text x="840" y="217" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" fill="#5B6B64" font-weight="400">music player</text>
+<rect x="950" y="206" width="180" height="14" rx="7" fill="#EEF3F0"/>
+<rect x="950" y="206" width="22" height="14" rx="7" fill="#9CC9AE"/>
+<rect x="1142" y="203" width="58" height="20" rx="10" fill="#DCFCE7"/><text x="1171" y="217" text-anchor="middle" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="11" fill="#15803D">eco</text>
+<text x="840" y="250" font-family="'Segoe UI', Inter, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" fill="#5B6B64" font-weight="400">updater</text>
+<rect x="950" y="239" width="180" height="14" rx="7" fill="#EEF3F0"/>
+<rect x="950" y="239" width="14" height="14" rx="7" fill="#9CC9AE"/>
+<rect x="1142" y="236" width="58" height="20" rx="10" fill="#DCFCE7"/><text x="1171" y="250" text-anchor="middle" font-family="ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace" font-size="11" fill="#15803D">eco</text>
+</g></svg>

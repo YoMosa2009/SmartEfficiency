@@ -1,3 +1,16 @@
+<p align="center">
+  <img src=".github/assets/banner.svg" alt="SmartEfficiency: idle background apps go quiet, the one you're using doesn't" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/YoMosa2009/SmartEfficiency/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/YoMosa2009/SmartEfficiency?style=flat-square&color=16a34a"></a>
+  <img alt="Go" src="https://img.shields.io/badge/Go-00ADD8?style=flat-square&logo=go&logoColor=white">
+  <img alt="Windows verified" src="https://img.shields.io/badge/Windows-verified%20on%20hardware-16a34a?style=flat-square">
+  <img alt="Linux untested" src="https://img.shields.io/badge/Linux-untested-d97706?style=flat-square">
+  <img alt="macOS untested" src="https://img.shields.io/badge/macOS-untested%20(arm64)-d97706?style=flat-square">
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-5b6b64?style=flat-square"></a>
+</p>
+
 # SmartEfficiency
 
 A small background system that reduces battery/CPU/RAM waste from apps
@@ -32,6 +45,8 @@ automatically at login:
 - `smarteff-tray` - the tray icon + local dashboard
 - `smarteff-update` - a short-lived helper the other two use to self-update
 
+<p align="center"><img src=".github/assets/architecture.svg" alt="Architecture: OS service manager starts smarteffd and smarteff-tray, which share status.json and config.json, watch each other's PID files, and launch smarteff-update against GitHub Releases" width="100%"></p>
+
 To remove everything: `smarteffd -uninstall` (from wherever it was
 installed - see "Files" below), then delete the install directory.
 
@@ -44,6 +59,14 @@ only on `127.0.0.1`, never reachable from the network) showing:
 - how many processes are currently throttled, and how much RAM has been
   freed today
 - the current version, and a "Check for updates" button
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/dashboard-dark.png">
+    <img src=".github/assets/dashboard-light.png" alt="The SmartEfficiency dashboard: monitoring toggle, battery, RAM, throttled processes, RAM freed today, timer resolution, energy audit, version" width="380">
+  </picture>
+  <br><sub>The real dashboard page (<code>ui/dashboard/assets/index.html</code>), rendered with sample status data. It follows your light/dark setting.</sub>
+</p>
 
 The tray menu itself also has a quick pause/resume toggle, for when opening
 a browser tab is more than you want.
@@ -60,6 +83,35 @@ Every poll cycle (default 15s):
 - a short built-in list of core OS processes (explorer, systemd, launchd,
   etc.) is never touched, on top of whatever you add to
   `ExcludedProcessNames` in `config.json`
+
+```mermaid
+flowchart TD
+    A([Every poll cycle<br/>default 15 s]) --> B{{Critical OS process<br/>or excluded?}}
+    B -- yes --> SKIP[Never touched]
+    B -- no --> C{{Owns the<br/>focused window?}}
+    C -- yes --> N[Normal tier<br/>restored instantly]
+    C -- no --> D{{"RAM ≥ RamPressureHighPct,<br/>or unfocused past the idle threshold?<br/>60 s on battery · 120 s plugged in"}}
+    D -- yes --> E[Wants efficiency tier]
+    D -- no --> N2[Wants normal tier]
+    E --> H{{Last change ≥<br/>ThrottleMinDwellSeconds ago?}}
+    N2 --> H
+    H -- yes --> APPLY[Apply the change]
+    H -- no --> HOLD[Hold current tier<br/>hysteresis]
+    APPLY --> T{{In efficiency tier and<br/>not trimmed for 10 min?}}
+    HOLD --> T
+    T -- "yes, working set ≤ RamTrimMaxWorkingSetMB" --> TRIM[Trim memory<br/>Windows only]
+
+    classDef eco fill:#dcfce7,stroke:#16a34a,color:#17241f
+    classDef norm fill:#ffffff,stroke:#5b6b64,color:#17241f
+    classDef stop fill:#fef3c7,stroke:#d97706,color:#17241f
+    classDef ask fill:#f5f7f6,stroke:#9fb3aa,color:#17241f
+    class E,TRIM eco
+    class N,N2,APPLY norm
+    class SKIP,HOLD stop
+    class B,C,D,H,T ask
+```
+
+<sub>Processes never seen in the foreground since the daemon started count as idle from the start. Becoming focused bypasses the dwell hold.</sub>
 
 "Throttled" means, depending on platform: Windows' EcoQoS efficiency mode
 (a genuine OS-level scheduling hint), or a lower `nice` value on Linux/macOS
@@ -186,6 +238,22 @@ Being independent, it can safely: verify the new binaries' SHA-256 against
 `checksums.txt` in the release, stop the daemon+tray, swap the files, and
 start them again. If anything fails partway, whatever's already been left
 running/stopped falls back to the OS's own restart-on-failure setting.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant D as smarteffd / tray
+    participant U as smarteff-update
+    participant GH as GitHub Releases
+    D->>U: launch detached (daily check, or dashboard button)
+    U->>GH: GET releases/latest
+    GH-->>U: newer tag + binaries + checksums.txt
+    U->>U: verify SHA-256 of every binary
+    U->>D: stop daemon + tray
+    U->>U: swap the files
+    U->>D: start daemon + tray
+    Note over U,D: if anything fails partway, the OS restart-on-failure setting is the fallback
+```
 
 ## Config
 
